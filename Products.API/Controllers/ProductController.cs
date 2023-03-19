@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Products.Domain.Filters;
 using Products.Domain.Models;
 using Products.Service;
 
@@ -20,12 +21,12 @@ public class ProductController : Controller
         return Ok(await _productService.Insert(product));
     }
 
-    [HttpGet, Route("GetProduct")]
-    public async Task<IActionResult> GetProduct([FromQuery] FilteredParameters parameters)
+    [HttpPost, Route("GetProduct")]
+    public async Task<IActionResult> GetProduct([FromQuery] FilteredParameters parameters, [FromBody] List<OrderByParameter> orderParams)
     {
         if (parameters.Page == 0)
             return BadRequest("The page is required");
         
-        return Ok(await _productService.Get(parameters.Page, parameters.ItemsPerPage, parameters.OrderBy, parameters.Descending));
+        return Ok(await _productService.Get(parameters, orderParams));
     }
 }

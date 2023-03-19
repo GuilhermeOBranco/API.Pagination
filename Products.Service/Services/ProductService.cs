@@ -21,17 +21,22 @@ public class ProductService : IProductService
         throw new NotImplementedException();
     }
 
-    public async Task<ProductResponse> Get(int page,float itemsPerPage, string orderBy, bool descending)
+    public async Task<ProductResponse> Get(FilteredParameters filterParams, List<OrderByParameter> orderParams)
     {
-        double pageCount = Math.Ceiling(await _context.Product.CountAsync() / itemsPerPage);
+        double pageCount = Math.Ceiling(await _context.Product.CountAsync() / filterParams.ItemsPerPage);
+        Console.WriteLine(_context.Product
+            .Skip((filterParams.Page - 1) * (int)filterParams.ItemsPerPage)
+            .Take((int)filterParams.ItemsPerPage)
+            .OrderBy(x => x.Id)
+            .CustomOrderBy(orderParams).ToQueryString());
+        var products = _context.Product
+            .Skip((filterParams.Page - 1) * (int)filterParams.ItemsPerPage)
+            .Take((int)filterParams.ItemsPerPage)
+            .OrderBy(x => x.Id)
+            .CustomOrderBy(orderParams)
+            .ToList();
 
-        var products = await _context.Product
-            .CustomOrderBy(orderBy, descending)
-            .Skip((page - 1) * (int)itemsPerPage)
-            .Take((int)itemsPerPage)
-            .ToListAsync();
-
-        return new ProductResponse { Products = products, CurrentPage = page, Pages = (int)pageCount };
+        return new ProductResponse { Products = products, CurrentPage = filterParams.Page, Pages = (int)pageCount };
     }
 
     public async Task<Product> Insert(Product product)

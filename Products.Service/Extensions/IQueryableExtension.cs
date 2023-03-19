@@ -1,21 +1,42 @@
 using System.Linq.Expressions;
+using Products.Domain.Filters;
 
 namespace Products.Service.Extensions;
 
-public static class IQueryableExtension
+public static class IOrderedQueryableExtension
 {
-    public static IQueryable<T> CustomOrderBy<T>(this IQueryable<T> source, string orderBy,bool descending = true)
+    public static IOrderedQueryable<T> CustomOrderBy<T>(this IOrderedQueryable<T>source, List<OrderByParameter> orderParams)
     {
-        ParameterExpression parameter = Expression.Parameter(typeof(T), "x");
-        MemberExpression property = Expression.Property(parameter, orderBy);
-        Expression<Func<T, object>> lambda = Expression.Lambda<Func<T, object>>(Expression.Convert(property, typeof(object)), parameter);
-
+        bool isFirstOrder = true;
         
-        if (descending)
-            return source.OrderByDescending(lambda);
-        
+        foreach (var param in orderParams)
+        {
+            ParameterExpression parameter = Expression.Parameter(typeof(T), "x");
+            MemberExpression property = Expression.Property(parameter, param.Property);
+            Expression<Func<T, object>> lambda = 
+                Expression.Lambda<Func<T, object>>(Expression.Convert(property, typeof(object)), parameter);
 
-        return source.OrderBy(lambda);
+            if (isFirstOrder && param.IsDescending)
+            {
+                source = source.OrderByDescending(lambda);
+                isFirstOrder = false;
+            }
+            
+            if (isFirstOrder && !param.IsDescending)
+            {
+                source = source.OrderBy(lambda);
+                isFirstOrder = false;
+            }
+            
+            if(param.IsDescending && !isFirstOrder)
+                source = source.ThenByDescending(lambda);
+            
+            if(!param.IsDescending && !isFirstOrder)
+                source = source.ThenBy(lambda);
+            
+        }
+
+        return source;
     }
    
 }

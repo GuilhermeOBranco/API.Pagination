@@ -7,6 +7,6 @@ namespace Products.Service;
 public interface IProductService
 {
     Task<List<Product>> Get(ProductFilter filter);
-    Task<ProductResponse> Get(int page, float itemsPerPage, string orderBy, bool descending = true);
+    Task<ProductResponse> Get(FilteredParameters filterParams, List<OrderByParameter> orderParams);
     Task<Product> Insert(Product product);
 }
