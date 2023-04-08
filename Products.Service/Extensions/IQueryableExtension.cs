@@ -5,38 +5,35 @@ namespace Products.Service.Extensions;
 
 public static class IOrderedQueryableExtension
 {
-    public static IOrderedQueryable<T> CustomOrderBy<T>(this IOrderedQueryable<T>source, List<OrderByParameter> orderParams)
+    public static IQueryable<T> CustomOrderBy<T>(this IQueryable<T> source,
+        List<OrderByParameter> orderParams)
     {
-        bool isFirstOrder = true;
+        if (orderParams.Count == 0)
+            return source;
+
+        IOrderedQueryable<T> orderedQuery = orderParams.First().IsDescending
+            ? source.OrderByDescending(GetLmabda<T>(orderParams.First()))
+            : source.OrderBy(GetLmabda<T>(orderParams.First()));
+        
+        orderParams.RemoveAt(index: 0);
         
         foreach (var param in orderParams)
         {
-            ParameterExpression parameter = Expression.Parameter(typeof(T), "x");
-            MemberExpression property = Expression.Property(parameter, param.Property);
-            Expression<Func<T, object>> lambda = 
-                Expression.Lambda<Func<T, object>>(Expression.Convert(property, typeof(object)), parameter);
+            if (param.IsDescending)
+                orderedQuery = orderedQuery.ThenByDescending(GetLmabda<T>(param));
 
-            if (isFirstOrder && param.IsDescending)
-            {
-                source = source.OrderByDescending(lambda);
-                isFirstOrder = false;
-            }
-            
-            if (isFirstOrder && !param.IsDescending)
-            {
-                source = source.OrderBy(lambda);
-                isFirstOrder = false;
-            }
-            
-            if(param.IsDescending && !isFirstOrder)
-                source = source.ThenByDescending(lambda);
-            
-            if(!param.IsDescending && !isFirstOrder)
-                source = source.ThenBy(lambda);
-            
+            if (!param.IsDescending)
+                orderedQuery = orderedQuery.ThenBy(GetLmabda<T>(param));
         }
 
+        source = orderedQuery;
         return source;
     }
-   
+
+    public static Expression<Func<TEntity, object>> GetLmabda<TEntity>(OrderByParameter param)
+    {
+        ParameterExpression parameter = Expression.Parameter(typeof(TEntity), "x");
+        MemberExpression property = Expression.Property(parameter, param.Property);
+        return Expression.Lambda<Func<TEntity, object>>(Expression.Convert(property, typeof(object)), parameter);
+    }
 }

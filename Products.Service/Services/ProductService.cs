@@ -21,21 +21,24 @@ public class ProductService : IProductService
         throw new NotImplementedException();
     }
 
-    public async Task<ProductResponse> Get(FilteredParameters filterParams, List<OrderByParameter> orderParams)
+    public async Task<ProductResponse> Get(FilteredParameters filterParams, List<OrderByParameter>? orderParams = null)
     {
-        double pageCount = Math.Ceiling(await _context.Product.CountAsync() / filterParams.ItemsPerPage);
-        Console.WriteLine(_context.Product
-            .Skip((filterParams.Page - 1) * (int)filterParams.ItemsPerPage)
-            .Take((int)filterParams.ItemsPerPage)
-            .OrderBy(x => x.Id)
-            .CustomOrderBy(orderParams).ToQueryString());
-        var products = _context.Product
-            .Skip((filterParams.Page - 1) * (int)filterParams.ItemsPerPage)
-            .Take((int)filterParams.ItemsPerPage)
-            .OrderBy(x => x.Id)
-            .CustomOrderBy(orderParams)
-            .ToList();
+        IQueryable<Product> dbQuery = _context.Product;
 
+        if (!String.IsNullOrEmpty(filterParams.Filter))
+            dbQuery = dbQuery.Where(x => x.Name == filterParams.Filter);
+
+        if (orderParams != null)
+            dbQuery = dbQuery.CustomOrderBy(orderParams);
+
+        double pageCount = Math.Ceiling(dbQuery.Count() / filterParams.ItemsPerPage);
+        
+        dbQuery = dbQuery.Skip((filterParams.Page - 1) * (int)filterParams.ItemsPerPage)
+            .Take((int)filterParams.ItemsPerPage);
+
+        List<Product> products = dbQuery.ToList();
+        
+        
         return new ProductResponse { Products = products, CurrentPage = filterParams.Page, Pages = (int)pageCount };
     }
 

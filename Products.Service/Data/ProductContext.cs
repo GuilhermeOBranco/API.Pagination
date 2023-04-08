@@ -18,7 +18,7 @@ public class ProductContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        Console.WriteLine(_configuration.GetConnectionString(("SqlAWS")));
+        optionsBuilder.LogTo(Console.WriteLine);
         base.OnConfiguring(optionsBuilder.UseMySql(
             serverVersion: ServerVersion.AutoDetect(_configuration.GetConnectionString(("SqlAWS"))), connectionString: _configuration.GetConnectionString("SqlAWS")));
     }
